@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+}
+
+body {
+  @apply antialiased bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50;
+}
+
+input, textarea {
+  @apply border-gray-200 rounded-lg transition-all;
+}
+
+input:hover, textarea:hover {
+  @apply border-indigo-300;
+}
+
+input:focus, textarea:focus {
+  @apply border-indigo-500 ring-indigo-500;
+}
+
+.scale-102 {
+  transform: scale(1.02);
+}
