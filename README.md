@@ -1,3 +1,3 @@
-# TimeCapsuleApp
+An app to upload text, files, videos, and documents and get them sent to you at a later date. Try it now!
 
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/Daniel-Lamb/TimeCapsuleApp)
+-- Build Still in Progress --
