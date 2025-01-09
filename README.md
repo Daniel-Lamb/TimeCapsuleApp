@@ -2,4 +2,4 @@ An app to upload text, files, videos, and documents and get them sent to you at 
 
 -- Build Still in Progress --
 
-need to use Amazon SES in
+need to use Amazon SES
