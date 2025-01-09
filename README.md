@@ -6,3 +6,4 @@ need to use Amazon SES
 
 other things to add:
 -cap the file size
+-brand to purple and grey
