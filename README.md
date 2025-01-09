@@ -5,4 +5,4 @@ An app to upload text, files, videos, and documents and get them sent to you at 
 need to use Amazon SES
 
 other things to add:
-- cap the file size
+cap the file size, 
