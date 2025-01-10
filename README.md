@@ -1,12 +1,11 @@
 # Future Delivery App
 
 Welcome to the **Future Delivery App**! 🚀  
-This app allows you to upload various types of content, including text, files, videos, and documents, and schedule them to be delivered to you at a later date. 📬✨  
+This app allows you to upload various types of content, including text, files, videos, and documents, and schedule them to be delivered to you at a later date. 📬  
 
 ---
 
-## 🚧 Build Status  
-The app is currently **under active development**. Some features are still being implemented, and additional functionality will be added in future updates.
+### 🚧 Build **under active development**.
 
 ---
 
@@ -28,14 +27,7 @@ We are continuously working to improve the app. Here are some of the upcoming fe
 
 ---
 
-## Technology Stack  
-- **Backend**: Powered by a robust backend system with scheduling and file management capabilities.  
-- **Delivery System**: Utilizes **Amazon SES** for secure and scalable email delivery.  
-- **Frontend**: Intuitive interface built with modern web technologies (development ongoing).  
-
----
-
-## If you want to Help:
+## Si Quieres Ayudar:
 We welcome contributions to make this app even better! If you have ideas, suggestions, or want to help with development, feel free to:  
 1. Fork this repository.  
 2. Create a new branch for your feature or fix.  
