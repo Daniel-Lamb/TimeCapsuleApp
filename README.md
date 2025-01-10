@@ -1,31 +1,46 @@
 # Future Delivery App
 
-An app that allows you to upload text, files, videos, and documents and have them sent to you at a later date. 📬✨  
-**Try it now!**
+Welcome to the **Future Delivery App**! 🚀  
+This app allows you to upload various types of content, including text, files, videos, and documents, and schedule them to be delivered to you at a later date. Whether it’s a message for your future self, important reminders, or a way to securely store and retrieve files, the Future Delivery App has you covered. 📬✨  
 
 ---
 
 ## 🚧 Build Status  
-**Currently in Progress**
+The app is currently **under active development**. Some features are still being implemented, and additional functionality will be added in future updates. Stay tuned for a fully functional release!  
 
 ---
 
-## Features  
-- Upload various content types:
-  - Text  
-  - Files  
-  - Videos  
-  - Documents  
-- Schedule delivery to your future self!  
-- Reliable delivery powered by **Amazon SES**.
+## Features (Current and Upcoming)  
+- **Upload Content**: Easily upload text, files, videos, and documents.  
+- **Scheduled Delivery**: Choose a specific date and time for when your content should be delivered to you.  
+- **Secure Delivery**: Using **Amazon SES** to ensure reliable and secure transmission of your content.  
+- **User-Friendly Design**: Intuitive and clean UI for effortless interaction (work in progress).  
 
 ---
 
-## To-Do  
-- [ ] Implement file size capping  
-- [ ] Adjust and refine title spacing for a polished UI  
-- [ ] Add more detailed user documentation  
+## Planned Enhancements  
+We are continuously working to improve the app. Here are some of the upcoming features:  
+- [ ] **File Size Capping**: Limit the size of uploaded files to ensure performance and reliability.  
+- [ ] **UI Improvements**: Adjust title spacing and other design elements for a polished look.  
+- [ ] **Enhanced Documentation**: Provide a comprehensive user guide and technical documentation for developers.  
+- [ ] **Advanced Content Types**: Support for additional file formats and media types.  
+- [ ] **Customizable Notifications**: Allow users to customize how and when they are notified of their delivery.  
 
 ---
 
-Stay tuned for updates! 💡
+## Technology Stack  
+- **Backend**: Powered by a robust backend system with scheduling and file management capabilities.  
+- **Delivery System**: Utilizes **Amazon SES** for secure and scalable email delivery.  
+- **Frontend**: Intuitive interface built with modern web technologies (development ongoing).  
+
+---
+
+## How to Contribute  
+We welcome contributions to make this app even better! If you have ideas, suggestions, or want to help with development, feel free to:  
+1. Fork this repository.  
+2. Create a new branch for your feature or fix.  
+3. Submit a pull request with a detailed explanation of your changes.  
+
+---
+
+Stay tuned as we roll out new features and updates. Let’s create something amazing together! 💡✨
