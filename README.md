@@ -1,8 +1,31 @@
-An app to upload text, files, videos, and documents and get them sent to you at a later date. Try it now!
+# Future Delivery App
 
--- Build Still in Progress --
+An app that allows you to upload text, files, videos, and documents and have them sent to you at a later date. 📬✨  
+**Try it now!**
 
-need to use Amazon SES
+---
 
-other things to add:
-cap the file size, correct spacing with title
+## 🚧 Build Status  
+**Currently in Progress**
+
+---
+
+## Features  
+- Upload various content types:
+  - Text  
+  - Files  
+  - Videos  
+  - Documents  
+- Schedule delivery to your future self!  
+- Reliable delivery powered by **Amazon SES**.
+
+---
+
+## To-Do  
+- [ ] Implement file size capping  
+- [ ] Adjust and refine title spacing for a polished UI  
+- [ ] Add more detailed user documentation  
+
+---
+
+Stay tuned for updates! 💡
