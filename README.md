@@ -35,12 +35,8 @@ We are continuously working to improve the app. Here are some of the upcoming fe
 
 ---
 
-## How to Contribute  
+## If you want to Help:
 We welcome contributions to make this app even better! If you have ideas, suggestions, or want to help with development, feel free to:  
 1. Fork this repository.  
 2. Create a new branch for your feature or fix.  
 3. Submit a pull request with a detailed explanation of your changes.  
-
----
-
-Stay tuned as we roll out new features and updates. Let’s create something amazing together! 💡✨
