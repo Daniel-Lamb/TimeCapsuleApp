@@ -1,20 +1,20 @@
 # Future Delivery App
 
 Welcome to the **Future Delivery App**! 🚀  
-This app allows you to upload various types of content, including text, files, videos, and documents, and schedule them to be delivered to you at a later date. Whether it’s a message for your future self, important reminders, or a way to securely store and retrieve files, the Future Delivery App has you covered. 📬✨  
+This app allows you to upload various types of content, including text, files, videos, and documents, and schedule them to be delivered to you at a later date. 📬✨  
 
 ---
 
 ## 🚧 Build Status  
-The app is currently **under active development**. Some features are still being implemented, and additional functionality will be added in future updates. Stay tuned for a fully functional release!  
+The app is currently **under active development**. Some features are still being implemented, and additional functionality will be added in future updates.
 
 ---
 
 ## Features (Current and Upcoming)  
 - **Upload Content**: Easily upload text, files, videos, and documents.  
 - **Scheduled Delivery**: Choose a specific date and time for when your content should be delivered to you.  
-- **Secure Delivery**: Using **Amazon SES** to ensure reliable and secure transmission of your content.  
-- **User-Friendly Design**: Intuitive and clean UI for effortless interaction (work in progress).  
+- **Secure Delivery**: I will be using **Amazon SES** to ensure secure transmission of content.  
+- **User-Friendly Design**: Intuitive and clean UI for cleaner interactions (work in progress - need to fix title and more).  
 
 ---
 
