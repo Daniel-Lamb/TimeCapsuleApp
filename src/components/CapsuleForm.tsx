@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar, Mail, Type, Clock, File } from 'lucide-react';
+import { Calendar, Mail, Type, Clock, File, X, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { CapsuleUpload } from './CapsuleUpload';
 import { createCapsule } from '../lib/capsules';
 import { describeUnlock, localTimeZone, toInstant, todayLocal } from '../lib/time';
+import { formatBytes, MAX_FILE_BYTES, MAX_FILES, MAX_TOTAL_BYTES } from '../lib/limits';
 
 export const CapsuleForm: React.FC = () => {
   const [name, setName] = useState('');
@@ -12,6 +13,7 @@ export const CapsuleForm: React.FC = () => {
   const [unlockDate, setUnlockDate] = useState('');
   const [unlockTime, setUnlockTime] = useState('12:00');
   const [files, setFiles] = useState<File[]>([]);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
 
   const timeZone = localTimeZone();
   const unlockInstant = unlockDate ? toInstant(unlockDate, unlockTime) : null;
@@ -32,8 +34,50 @@ export const CapsuleForm: React.FC = () => {
     });
   };
 
-  const handleFilesAdded = (newFiles: File[]) => {
-    setFiles((prev) => [...prev, ...newFiles]);
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  const capsuleIsFull = files.length >= MAX_FILES || totalBytes >= MAX_TOTAL_BYTES;
+
+  /**
+   * Every rejection is explained by name. Dropping ten files and being told
+   * only "some files were rejected" leaves the sender guessing which ones.
+   */
+  const handleFilesAdded = (incoming: File[]) => {
+    const problems: string[] = [];
+    const accepted: File[] = [];
+    let running = totalBytes;
+
+    for (const file of incoming) {
+      const alreadyStaged = [...files, ...accepted].some((existing) => (
+        existing.name === file.name
+        && existing.size === file.size
+        && existing.lastModified === file.lastModified
+      ));
+
+      if (alreadyStaged) {
+        problems.push(`"${file.name}" is already in this capsule.`);
+      } else if (file.size > MAX_FILE_BYTES) {
+        problems.push(
+          `"${file.name}" is ${formatBytes(file.size)} — the limit is ${formatBytes(MAX_FILE_BYTES)} per file.`,
+        );
+      } else if (files.length + accepted.length >= MAX_FILES) {
+        problems.push(`A capsule holds ${MAX_FILES} files, so "${file.name}" was left out.`);
+      } else if (running + file.size > MAX_TOTAL_BYTES) {
+        problems.push(
+          `"${file.name}" would push this capsule past ${formatBytes(MAX_TOTAL_BYTES)}.`,
+        );
+      } else {
+        accepted.push(file);
+        running += file.size;
+      }
+    }
+
+    if (accepted.length > 0) setFiles((prev) => [...prev, ...accepted]);
+    setFileErrors(problems);
+  };
+
+  const handleFileRemoved = (index: number) => {
+    setFiles((prev) => prev.filter((_, position) => position !== index));
+    setFileErrors([]);
   };
 
   return (
@@ -136,17 +180,45 @@ export const CapsuleForm: React.FC = () => {
         <label className="block text-sm font-medium text-gray-700">
           Add Content
         </label>
-        <CapsuleUpload onFilesAdded={handleFilesAdded} />
+        <CapsuleUpload onFilesAdded={handleFilesAdded} disabled={capsuleIsFull} />
       </div>
+
+      {fileErrors.length > 0 && (
+        <ul className="space-y-2">
+          {fileErrors.map((problem) => (
+            <li key={problem} className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <span>{problem}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {files.length > 0 && (
         <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Selected Files</h3>
+          <div className="flex items-baseline justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">Selected Files</h3>
+            <p className="text-xs text-gray-500">
+              {files.length} of {MAX_FILES} · {formatBytes(totalBytes)} of {formatBytes(MAX_TOTAL_BYTES)}
+            </p>
+          </div>
           <ul className="space-y-2">
             {files.map((file, index) => (
-              <li key={index} className="flex items-center space-x-2 text-gray-600 bg-white p-2 rounded-md">
-                <File size={16} className="text-indigo-500" />
-                <span className="text-sm">{file.name}</span>
+              <li
+                key={`${file.name}-${file.size}-${file.lastModified}`}
+                className="flex items-center gap-2 text-gray-600 bg-white p-2 rounded-md"
+              >
+                <File size={16} className="text-indigo-500 shrink-0" />
+                <span className="text-sm truncate">{file.name}</span>
+                <span className="text-xs text-gray-400 ml-auto shrink-0">{formatBytes(file.size)}</span>
+                <button
+                  type="button"
+                  onClick={() => handleFileRemoved(index)}
+                  aria-label={`Remove ${file.name}`}
+                  className="shrink-0 p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <X size={14} />
+                </button>
               </li>
             ))}
           </ul>
