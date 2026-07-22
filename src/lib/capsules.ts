@@ -44,8 +44,18 @@ async function messageFrom(error: unknown, fallback: string): Promise<string> {
   return error instanceof Error ? error.message : fallback;
 }
 
-export async function createCapsule(capsule: NewCapsule): Promise<string> {
+export interface CapsuleProgress {
+  phase: 'creating' | 'uploading';
+  uploaded: number;
+  total: number;
+}
+
+export async function createCapsule(
+  capsule: NewCapsule,
+  onProgress?: (progress: CapsuleProgress) => void,
+): Promise<string> {
   const client = supabase();
+  onProgress?.({ phase: 'creating', uploaded: 0, total: capsule.files.length });
 
   const { data, error } = await client.functions.invoke<CreateResponse>('create-capsule', {
     body: {
@@ -66,6 +76,9 @@ export async function createCapsule(capsule: NewCapsule): Promise<string> {
   if (error) throw new Error(await messageFrom(error, 'Could not create the capsule.'));
   if (!data) throw new Error('The server returned an empty response.');
 
+  let uploaded = 0;
+  onProgress?.({ phase: 'uploading', uploaded, total: data.uploads.length });
+
   // Tickets come back in request order, so pair by index — filenames are not
   // unique within a capsule.
   await Promise.all(
@@ -78,6 +91,9 @@ export async function createCapsule(capsule: NewCapsule): Promise<string> {
         .uploadToSignedUrl(ticket.path, ticket.token, file);
 
       if (uploadError) throw new Error(`Upload failed for "${file.name}": ${uploadError.message}`);
+
+      uploaded += 1;
+      onProgress?.({ phase: 'uploading', uploaded, total: data.uploads.length });
     }),
   );
 

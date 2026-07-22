@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
-import { Calendar, Mail, Type, Clock, File, X, AlertCircle } from 'lucide-react';
+import { Calendar, Mail, Type, Clock, File, X, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { CapsuleUpload } from './CapsuleUpload';
 import { createCapsule } from '../lib/capsules';
 import { describeUnlock, localTimeZone, toInstant, todayLocal } from '../lib/time';
 import { formatBytes, MAX_FILE_BYTES, MAX_FILES, MAX_TOTAL_BYTES } from '../lib/limits';
+
+type Status =
+  | { kind: 'idle' }
+  | { kind: 'submitting'; label: string }
+  | { kind: 'error'; message: string }
+  | { kind: 'sealed'; arrivesOn: string; recipient: string };
 
 export const CapsuleForm: React.FC = () => {
   const [name, setName] = useState('');
@@ -14,24 +20,61 @@ export const CapsuleForm: React.FC = () => {
   const [unlockTime, setUnlockTime] = useState('12:00');
   const [files, setFiles] = useState<File[]>([]);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
   const timeZone = localTimeZone();
   const unlockInstant = unlockDate ? toInstant(unlockDate, unlockTime) : null;
   const unlockIsPast = unlockInstant !== null && unlockInstant.getTime() <= Date.now();
 
+  const isSubmitting = status.kind === 'submitting';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!unlockInstant || unlockIsPast) return;
+    if (!unlockInstant || unlockIsPast || isSubmitting) return;
 
-    await createCapsule({
-      name,
-      description,
-      recipientEmail: email,
-      unlockAt: unlockInstant.toISOString(),
-      unlockTimezone: timeZone,
-      unlockLocal: `${unlockDate}T${unlockTime}`,
-      files,
-    });
+    setStatus({ kind: 'submitting', label: 'Sealing your capsule…' });
+
+    try {
+      await createCapsule(
+        {
+          name,
+          description,
+          recipientEmail: email,
+          unlockAt: unlockInstant.toISOString(),
+          unlockTimezone: timeZone,
+          unlockLocal: `${unlockDate}T${unlockTime}`,
+          files,
+        },
+        (progress) => setStatus({
+          kind: 'submitting',
+          label: progress.phase === 'creating'
+            ? 'Sealing your capsule…'
+            : `Uploading ${progress.uploaded + 1} of ${progress.total}…`,
+        }),
+      );
+
+      setStatus({
+        kind: 'sealed',
+        arrivesOn: describeUnlock(unlockInstant, timeZone),
+        recipient: email,
+      });
+    } catch (cause) {
+      setStatus({
+        kind: 'error',
+        message: cause instanceof Error ? cause.message : 'Something went wrong. Please try again.',
+      });
+    }
+  };
+
+  const handleReset = () => {
+    setName('');
+    setDescription('');
+    setEmail('');
+    setUnlockDate('');
+    setUnlockTime('12:00');
+    setFiles([]);
+    setFileErrors([]);
+    setStatus({ kind: 'idle' });
   };
 
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
@@ -80,9 +123,29 @@ export const CapsuleForm: React.FC = () => {
     setFileErrors([]);
   };
 
+  if (status.kind === 'sealed') {
+    return (
+      <div className="text-center space-y-4 py-4">
+        <div className="flex justify-center">
+          <div className="bg-green-50 p-3 rounded-full">
+            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900">Your capsule is sealed</h2>
+        <p className="text-gray-600">
+          It arrives at <span className="font-medium text-gray-900">{status.recipient}</span> on{' '}
+          <span className="font-medium text-gray-900">{status.arrivesOn}</span>
+        </p>
+        <Button type="button" variant="outline" onClick={handleReset}>
+          Create another
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="space-y-6">
+      <fieldset disabled={isSubmitting} className="space-y-6 min-w-0 disabled:opacity-60">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
             Capsule Name
@@ -174,13 +237,13 @@ export const CapsuleForm: React.FC = () => {
               : `Arrives ${describeUnlock(unlockInstant, timeZone)}.`}
           </p>
         )}
-      </div>
+      </fieldset>
 
       <div className="space-y-4">
         <label className="block text-sm font-medium text-gray-700">
           Add Content
         </label>
-        <CapsuleUpload onFilesAdded={handleFilesAdded} disabled={capsuleIsFull} />
+        <CapsuleUpload onFilesAdded={handleFilesAdded} disabled={capsuleIsFull || isSubmitting} />
       </div>
 
       {fileErrors.length > 0 && (
@@ -225,8 +288,22 @@ export const CapsuleForm: React.FC = () => {
         </div>
       )}
 
-      <Button type="submit" size="lg" className="w-full" disabled={unlockIsPast}>
-        Create Time Capsule
+      {status.kind === 'error' && (
+        <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <span>{status.message}</span>
+        </div>
+      )}
+
+      <Button type="submit" size="lg" className="w-full" disabled={unlockIsPast || isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <Loader2 size={20} className="animate-spin mr-2" />
+            {status.label}
+          </>
+        ) : (
+          'Create Time Capsule'
+        )}
       </Button>
     </form>
   );
