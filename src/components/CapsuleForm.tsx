@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Calendar, Mail, Type, Clock } from 'lucide-react';
+import { Calendar, Mail, Type, Clock, File } from 'lucide-react';
 import { Button } from './ui/Button';
 import { CapsuleUpload } from './CapsuleUpload';
+import { createCapsule } from '../lib/capsules';
 
 export const CapsuleForm: React.FC = () => {
   const [name, setName] = useState('');
@@ -13,9 +14,14 @@ export const CapsuleForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission with Supabase
     const unlockDateTime = `${unlockDate}T${unlockTime}:00`;
-    console.log('Unlock DateTime:', unlockDateTime);
+    await createCapsule({
+      name,
+      description,
+      recipientEmail: email,
+      unlockAt: unlockDateTime,
+      files,
+    });
   };
 
   const handleFilesAdded = (newFiles: File[]) => {
