@@ -6,8 +6,12 @@ export interface NewCapsule {
   name: string;
   description: string;
   recipientEmail: string;
-  /** ISO-8601 instant the capsule should be delivered. */
+  /** Absolute instant, offset included, that the capsule should be delivered. */
   unlockAt: string;
+  /** IANA zone the sender picked that time in. */
+  unlockTimezone: string;
+  /** The wall-clock they actually typed, kept for reading back to them. */
+  unlockLocal: string;
   files: File[];
 }
 
@@ -49,6 +53,8 @@ export async function createCapsule(capsule: NewCapsule): Promise<string> {
       description: capsule.description,
       recipientEmail: capsule.recipientEmail,
       unlockAt: capsule.unlockAt,
+      unlockTimezone: capsule.unlockTimezone,
+      unlockLocal: capsule.unlockLocal,
       files: capsule.files.map((file) => ({
         filename: file.name,
         mimeType: file.type,

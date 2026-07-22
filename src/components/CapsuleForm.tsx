@@ -3,6 +3,7 @@ import { Calendar, Mail, Type, Clock, File } from 'lucide-react';
 import { Button } from './ui/Button';
 import { CapsuleUpload } from './CapsuleUpload';
 import { createCapsule } from '../lib/capsules';
+import { describeUnlock, localTimeZone, toInstant, todayLocal } from '../lib/time';
 
 export const CapsuleForm: React.FC = () => {
   const [name, setName] = useState('');
@@ -12,14 +13,21 @@ export const CapsuleForm: React.FC = () => {
   const [unlockTime, setUnlockTime] = useState('12:00');
   const [files, setFiles] = useState<File[]>([]);
 
+  const timeZone = localTimeZone();
+  const unlockInstant = unlockDate ? toInstant(unlockDate, unlockTime) : null;
+  const unlockIsPast = unlockInstant !== null && unlockInstant.getTime() <= Date.now();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const unlockDateTime = `${unlockDate}T${unlockTime}:00`;
+    if (!unlockInstant || unlockIsPast) return;
+
     await createCapsule({
       name,
       description,
       recipientEmail: email,
-      unlockAt: unlockDateTime,
+      unlockAt: unlockInstant.toISOString(),
+      unlockTimezone: timeZone,
+      unlockLocal: `${unlockDate}T${unlockTime}`,
       files,
     });
   };
@@ -89,6 +97,7 @@ export const CapsuleForm: React.FC = () => {
                 type="date"
                 id="unlockDate"
                 value={unlockDate}
+                min={todayLocal()}
                 onChange={(e) => setUnlockDate(e.target.value)}
                 className="pl-10 block w-full rounded-lg border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors hover:border-indigo-300"
                 required
@@ -113,6 +122,14 @@ export const CapsuleForm: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {unlockInstant && (
+          <p className={`text-sm ${unlockIsPast ? 'text-red-600' : 'text-gray-500'}`}>
+            {unlockIsPast
+              ? 'That moment has already passed. Pick a date and time in the future.'
+              : `Arrives ${describeUnlock(unlockInstant, timeZone)}.`}
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -136,7 +153,7 @@ export const CapsuleForm: React.FC = () => {
         </div>
       )}
 
-      <Button type="submit" size="lg" className="w-full">
+      <Button type="submit" size="lg" className="w-full" disabled={unlockIsPast}>
         Create Time Capsule
       </Button>
     </form>

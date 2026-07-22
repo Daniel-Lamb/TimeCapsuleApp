@@ -12,11 +12,30 @@ interface CreateRequest {
   name: string;
   description?: string;
   recipientEmail: string;
+  /** Absolute instant, with an explicit Z or ±HH:MM offset. */
   unlockAt: string;
+  unlockTimezone: string;
+  unlockLocal: string;
   files: FileRequest[];
 }
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * A bare "2031-06-15T12:00:00" would be read here as noon UTC, silently moving
+ * the capsule by however far the sender is from Greenwich. Refuse it outright
+ * so the ambiguity can never reach the database.
+ */
+const HAS_OFFSET = /(Z|[+-]\d{2}:?\d{2})$/;
+
+function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Storage keys are built from user input, so strip anything that could escape
@@ -41,9 +60,16 @@ function validate(body: Partial<CreateRequest>): string | null {
   }
 
   if (!body.unlockAt) return 'An unlock date and time is required.';
+  if (!HAS_OFFSET.test(body.unlockAt)) {
+    return 'Unlock time must include a UTC offset so the intended moment is unambiguous.';
+  }
   const unlockAt = new Date(body.unlockAt);
   if (Number.isNaN(unlockAt.getTime())) return 'Unlock date and time is not a valid timestamp.';
   if (unlockAt.getTime() <= Date.now()) return 'The unlock date must be in the future.';
+
+  if (!body.unlockTimezone || !isValidTimeZone(body.unlockTimezone)) {
+    return 'A valid IANA time zone is required.';
+  }
 
   const ceiling = new Date();
   ceiling.setFullYear(ceiling.getFullYear() + MAX_UNLOCK_YEARS);
@@ -95,6 +121,8 @@ Deno.serve(async (req: Request) => {
       description: request.description?.trim() || null,
       recipient_email: request.recipientEmail.trim().toLowerCase(),
       unlock_at: new Date(request.unlockAt).toISOString(),
+      unlock_timezone: request.unlockTimezone,
+      unlock_local: request.unlockLocal?.slice(0, 32) ?? null,
     })
     .select('id')
     .single();
