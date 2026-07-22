@@ -6,6 +6,8 @@ export interface NewCapsule {
   name: string;
   description: string;
   recipientEmail: string;
+  /** Optional — when given, the sender is emailed their manage link. */
+  senderEmail: string;
   /** Absolute instant, offset included, that the capsule should be delivered. */
   unlockAt: string;
   /** IANA zone the sender picked that time in. */
@@ -23,7 +25,25 @@ interface UploadTicket {
 
 interface CreateResponse {
   capsuleId: string;
+  manageToken: string;
   uploads: UploadTicket[];
+}
+
+export interface ManagedCapsule {
+  id: string;
+  name: string;
+  description: string | null;
+  recipient_email: string;
+  unlock_at: string;
+  unlock_local: string | null;
+  unlock_timezone: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface ManagedCapsuleView {
+  capsule: ManagedCapsule;
+  files: Array<{ filename: string; size_bytes: number }>;
 }
 
 /**
@@ -62,6 +82,7 @@ export async function createCapsule(
       name: capsule.name,
       description: capsule.description,
       recipientEmail: capsule.recipientEmail,
+      senderEmail: capsule.senderEmail || undefined,
       unlockAt: capsule.unlockAt,
       unlockTimezone: capsule.unlockTimezone,
       unlockLocal: capsule.unlockLocal,
@@ -97,5 +118,36 @@ export async function createCapsule(
     }),
   );
 
-  return data.capsuleId;
+  return data.manageToken;
+}
+
+export async function loadManagedCapsule(manageToken: string): Promise<ManagedCapsuleView> {
+  const { data, error } = await supabase().functions.invoke<ManagedCapsuleView>(
+    `capsule-manage?token=${encodeURIComponent(manageToken)}`,
+    { method: 'GET' },
+  );
+  if (error) throw new Error(await messageFrom(error, 'Could not load that capsule.'));
+  if (!data) throw new Error('The server returned an empty response.');
+  return data;
+}
+
+export async function cancelCapsule(manageToken: string): Promise<ManagedCapsule> {
+  const { data, error } = await supabase().functions.invoke<{ capsule: ManagedCapsule }>(
+    'capsule-manage',
+    { body: { token: manageToken, action: 'cancel' } },
+  );
+  if (error) throw new Error(await messageFrom(error, 'Could not cancel that capsule.'));
+  return data!.capsule;
+}
+
+export async function rescheduleCapsule(
+  manageToken: string,
+  unlock: { unlockAt: string; unlockTimezone: string; unlockLocal: string },
+): Promise<ManagedCapsule> {
+  const { data, error } = await supabase().functions.invoke<{ capsule: ManagedCapsule }>(
+    'capsule-manage',
+    { body: { token: manageToken, action: 'reschedule', ...unlock } },
+  );
+  if (error) throw new Error(await messageFrom(error, 'Could not reschedule that capsule.'));
+  return data!.capsule;
 }

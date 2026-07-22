@@ -10,12 +10,13 @@ type Status =
   | { kind: 'idle' }
   | { kind: 'submitting'; label: string }
   | { kind: 'error'; message: string }
-  | { kind: 'sealed'; arrivesOn: string; recipient: string };
+  | { kind: 'sealed'; arrivesOn: string; recipient: string; manageUrl: string };
 
 export const CapsuleForm: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [email, setEmail] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
   const [unlockDate, setUnlockDate] = useState('');
   const [unlockTime, setUnlockTime] = useState('12:00');
   const [files, setFiles] = useState<File[]>([]);
@@ -35,11 +36,12 @@ export const CapsuleForm: React.FC = () => {
     setStatus({ kind: 'submitting', label: 'Sealing your capsule…' });
 
     try {
-      await createCapsule(
+      const manageToken = await createCapsule(
         {
           name,
           description,
           recipientEmail: email,
+          senderEmail,
           unlockAt: unlockInstant.toISOString(),
           unlockTimezone: timeZone,
           unlockLocal: `${unlockDate}T${unlockTime}`,
@@ -57,6 +59,7 @@ export const CapsuleForm: React.FC = () => {
         kind: 'sealed',
         arrivesOn: describeUnlock(unlockInstant, timeZone),
         recipient: email,
+        manageUrl: `${window.location.origin}/#/manage/${manageToken}`,
       });
     } catch (cause) {
       setStatus({
@@ -70,6 +73,7 @@ export const CapsuleForm: React.FC = () => {
     setName('');
     setDescription('');
     setEmail('');
+    setSenderEmail('');
     setUnlockDate('');
     setUnlockTime('12:00');
     setFiles([]);
@@ -133,9 +137,22 @@ export const CapsuleForm: React.FC = () => {
         </div>
         <h2 className="text-xl font-semibold text-gray-900">Your capsule is sealed</h2>
         <p className="text-gray-600">
-          It arrives at <span className="font-medium text-gray-900">{status.recipient}</span> on{' '}
+          We've asked <span className="font-medium text-gray-900">{status.recipient}</span> to accept it.
+          Once they do, it opens on{' '}
           <span className="font-medium text-gray-900">{status.arrivesOn}</span>
         </p>
+        <div className="bg-gray-50 rounded-lg p-4 text-left space-y-2">
+          <p className="text-sm font-medium text-gray-700">Keep this link</p>
+          <p className="text-xs text-gray-500">
+            It is the only way to check on, reschedule, or cancel this capsule.
+          </p>
+          <a
+            href={status.manageUrl}
+            className="block text-xs font-mono text-indigo-600 hover:underline break-all"
+          >
+            {status.manageUrl}
+          </a>
+        </div>
         <Button type="button" variant="outline" onClick={handleReset}>
           Create another
         </Button>
@@ -189,6 +206,23 @@ export const CapsuleForm: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 block w-full rounded-lg border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors hover:border-indigo-300"
               required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="senderEmail" className="block text-sm font-medium text-gray-700 mb-2">
+            Your Email <span className="font-normal text-gray-400">(optional)</span>
+          </label>
+          <div className="relative group">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-indigo-500" size={20} />
+            <input
+              type="email"
+              id="senderEmail"
+              value={senderEmail}
+              onChange={(e) => setSenderEmail(e.target.value)}
+              placeholder="So we can send you the link to manage this capsule"
+              className="pl-10 block w-full rounded-lg border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors hover:border-indigo-300 placeholder:text-gray-400 placeholder:text-sm"
             />
           </div>
         </div>

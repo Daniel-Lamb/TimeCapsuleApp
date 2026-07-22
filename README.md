@@ -13,11 +13,18 @@ Supabase backend:
 - **Storage** keeps the files in a private `capsules` bucket. Recipients get
   signed download links that expire 30 days after delivery.
 - **Edge functions** are the only way in. `create-capsule` validates the
-  request and hands back signed upload URLs; `deliver-capsules` sends the mail.
+  request and hands back signed upload URLs, `capsule-confirm` handles the
+  recipient's accept/decline link, `capsule-manage` backs the sender's manage
+  page, and `deliver-capsules` sends the mail.
 - **pg_cron** pokes `deliver-capsules` every five minutes. It claims due
   capsules with `for update skip locked`, so overlapping runs cannot send the
   same capsule twice, and a failed send is retried up to five times before the
   capsule is marked `failed`.
+
+A capsule is not scheduled the moment it is created. The recipient is emailed
+first and has to accept it, so nobody can have files pushed at them years from
+now without agreeing to it. The sender keeps a manage link that lets them check
+on the capsule, move it to another date, or call it off — until it goes out.
 
 Email goes out through [Resend](https://resend.com), which replaces the Amazon
 SES plan in earlier drafts — one HTTP call beats hand-rolling SigV4 signing

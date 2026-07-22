@@ -38,7 +38,13 @@ minutes.
 ```bash
 supabase functions deploy create-capsule
 supabase functions deploy deliver-capsules
+supabase functions deploy capsule-manage
+supabase functions deploy capsule-confirm --no-verify-jwt
 ```
+
+`capsule-confirm` is the only one deployed without JWT verification: it is
+reached by clicking a link in an email, where there is no anon key to send. It
+authorises on the unguessable confirm token instead.
 
 ## 4. Email
 
@@ -49,6 +55,13 @@ for testing the schedule before paying for anything.
 ```bash
 supabase secrets set RESEND_API_KEY=re_...
 supabase secrets set CAPSULE_FROM_EMAIL="Time Capsule <capsules@yourdomain.com>"
+```
+
+Set `APP_BASE_URL` too, or the manage links emailed to senders will point at
+`localhost`:
+
+```bash
+supabase secrets set APP_BASE_URL=https://yourdomain.com
 ```
 
 Optionally lock CORS down to your deployed origin:

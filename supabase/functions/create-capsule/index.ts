@@ -1,5 +1,6 @@
 import { adminClient, CAPSULE_BUCKET } from '../_shared/admin.ts';
 import { failure, json, preflight } from '../_shared/http.ts';
+import { layout, sendEmail } from '../_shared/email.ts';
 import { MAX_FILE_BYTES, MAX_FILES, MAX_TOTAL_BYTES, MAX_UNLOCK_YEARS } from '../_shared/limits.ts';
 
 interface FileRequest {
@@ -12,6 +13,8 @@ interface CreateRequest {
   name: string;
   description?: string;
   recipientEmail: string;
+  /** Optional — when given, the sender is emailed their manage link. */
+  senderEmail?: string;
   /** Absolute instant, with an explicit Z or ±HH:MM offset. */
   unlockAt: string;
   unlockTimezone: string;
@@ -27,6 +30,16 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
  * so the ambiguity can never reach the database.
  */
 const HAS_OFFSET = /(Z|[+-]\d{2}:?\d{2})$/;
+
+function appBaseUrl(): string {
+  return (Deno.env.get('APP_BASE_URL') ?? 'http://localhost:5173').replace(/\/+$/, '');
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!
+  ));
+}
 
 function isValidTimeZone(timeZone: string): boolean {
   try {
@@ -57,6 +70,10 @@ function validate(body: Partial<CreateRequest>): string | null {
 
   if (!body.recipientEmail || !EMAIL_PATTERN.test(body.recipientEmail)) {
     return 'A valid recipient email is required.';
+  }
+
+  if (body.senderEmail && !EMAIL_PATTERN.test(body.senderEmail)) {
+    return 'Your own email address is not valid.';
   }
 
   if (!body.unlockAt) return 'An unlock date and time is required.';
@@ -120,11 +137,12 @@ Deno.serve(async (req: Request) => {
       name: request.name.trim(),
       description: request.description?.trim() || null,
       recipient_email: request.recipientEmail.trim().toLowerCase(),
+      sender_email: request.senderEmail?.trim().toLowerCase() || null,
       unlock_at: new Date(request.unlockAt).toISOString(),
       unlock_timezone: request.unlockTimezone,
       unlock_local: request.unlockLocal?.slice(0, 32) ?? null,
     })
-    .select('id')
+    .select('id, confirm_token, manage_token')
     .single();
 
   if (insertError || !capsule) {
@@ -166,5 +184,55 @@ Deno.serve(async (req: Request) => {
     uploads.push({ filename: file.filename, path, token: signed.token });
   }
 
-  return json({ capsuleId: capsule.id, uploads }, 201);
+  const functionsBase = `${Deno.env.get('SUPABASE_URL')}/functions/v1/capsule-confirm`;
+  const confirmUrl = `${functionsBase}?token=${capsule.confirm_token}&action=confirm`;
+  const declineUrl = `${functionsBase}?token=${capsule.confirm_token}&action=decline`;
+  const manageUrl = `${appBaseUrl()}/#/manage/${capsule.manage_token}`;
+
+  const when = request.unlockLocal
+    ? `${request.unlockLocal.replace('T', ' at ')} (${request.unlockTimezone})`
+    : new Date(request.unlockAt).toUTCString();
+
+  const from = request.senderEmail ? escapeHtml(request.senderEmail) : 'Someone';
+
+  // Emails are best-effort: the capsule already exists, and failing the whole
+  // request here would leave the sender thinking nothing was saved.
+  try {
+    await sendEmail({
+      to: request.recipientEmail,
+      subject: `${request.senderEmail ?? 'Someone'} wants to send you a time capsule`,
+      html: layout('A time capsule is waiting for you', `
+        <p>${from} sealed &ldquo;${escapeHtml(request.name)}&rdquo; for you. It would open on
+           <strong>${escapeHtml(when)}</strong>.</p>
+        <p>Nothing is delivered unless you say yes.</p>
+        <p style="margin:24px 0">
+          <a href="${confirmUrl}" style="background:#4f46e5;color:#fff;padding:12px 20px;border-radius:8px;
+             text-decoration:none;display:inline-block">Accept this capsule</a>
+        </p>
+        <p style="font-size:13px"><a href="${declineUrl}" style="color:#6b7280">No thanks, decline it</a></p>
+      `),
+    });
+  } catch (cause) {
+    console.error('confirmation email failed', cause);
+  }
+
+  if (request.senderEmail) {
+    try {
+      await sendEmail({
+        to: request.senderEmail,
+        subject: `You sealed "${request.name}"`,
+        html: layout('Your capsule is sealed', `
+          <p>&ldquo;${escapeHtml(request.name)}&rdquo; is waiting on
+             ${escapeHtml(request.recipientEmail)} to accept it. Once they do, it opens on
+             <strong>${escapeHtml(when)}</strong>.</p>
+          <p>Keep this link — it is the only way to check on, reschedule, or cancel this capsule:</p>
+          <p><a href="${manageUrl}">${manageUrl}</a></p>
+        `),
+      });
+    } catch (cause) {
+      console.error('sender receipt email failed', cause);
+    }
+  }
+
+  return json({ capsuleId: capsule.id, manageToken: capsule.manage_token, uploads }, 201);
 });
